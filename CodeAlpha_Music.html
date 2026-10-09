@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Music Player</title>
+<style>
+:root{--bg:#f3efe6;--card:#fffdf8;--ink:#1d2a2e;--mute:#6b7a7e;--line:#dcd6c8;--acc:#0e7c86;--acc2:#e8a33d;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10181b;--card:#182327;--ink:#e9efef;--mute:#8da0a4;--line:#2a3a3f;--acc:#3fc1cc;--acc2:#f0b95a}}
+:root[data-theme="dark"]{--bg:#10181b;--card:#182327;--ink:#e9efef;--mute:#8da0a4;--line:#2a3a3f;--acc:#3fc1cc;--acc2:#f0b95a}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;min-height:100vh;display:flex;justify-content:center;padding:24px 14px}
+.player{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px}
+.art{width:100%;aspect-ratio:1.5;border-radius:14px;position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:14px;color:#fff;background:linear-gradient(135deg,var(--c1),var(--c2));transition:background .4s}
+.art .bars{display:flex;gap:5px;align-items:flex-end;height:46px}
+.art .bars i{width:7px;background:#fff;opacity:.85;border-radius:2px;height:8px}
+.playing .bars i{animation:bar .8s ease-in-out infinite alternate}
+.bars i:nth-child(2){animation-delay:.15s}.bars i:nth-child(3){animation-delay:.3s}.bars i:nth-child(4){animation-delay:.45s}.bars i:nth-child(5){animation-delay:.1s}
+@keyframes bar{to{height:44px}}
+@media (prefers-reduced-motion:reduce){.playing .bars i{animation:none;height:24px}}
+h1{font-size:1.35rem;margin:18px 0 2px;line-height:1.2}
+.artist{color:var(--mute);margin:0;font-size:.95rem}
+.row{display:flex;justify-content:space-between;font-size:.8rem;color:var(--mute);font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline-offset:4px;cursor:pointer;
+background:linear-gradient(to right,var(--acc) var(--p,0%),var(--line) var(--p,0%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--acc);border:2px solid var(--card)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--acc);border:2px solid var(--card)}
+#seek{margin:18px 0 6px}
+.ctrl{display:flex;justify-content:center;align-items:center;gap:18px;margin:14px 0}
+button{font:inherit;color:var(--ink);background:none;border:0;cursor:pointer;border-radius:50%;display:grid;place-items:center}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.sk{width:46px;height:46px}.sk:hover{background:var(--line)}
+.pp{width:64px;height:64px;background:var(--acc);color:#fff}
+.pp:hover{filter:brightness(1.1)}
+svg{width:22px;height:22px;fill:currentColor}.pp svg{width:28px;height:28px}
+.vol{display:flex;align-items:center;gap:10px;margin-top:6px}
+.vol button{width:36px;height:36px;flex:none}.vol button:hover{background:var(--line)}
+.auto{display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px;padding-top:14px;border-top:1px solid var(--line);font-size:.9rem}
+.auto label{display:flex;gap:8px;align-items:center;cursor:pointer}
+.auto input{accent-color:var(--acc);width:18px;height:18px}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;cursor:pointer;border-left:4px solid transparent}
+li:hover{background:var(--bg)}
+li:focus-visible{outline:2px solid var(--acc)}
+li.on{background:var(--bg);border-left-color:var(--acc2)}
+li .t{flex:1;min-width:0}li b{display:block;font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+li small{color:var(--mute)}li .d{font-size:.8rem;color:var(--mute);font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<main class="player" id="player" aria-label="Music player">
+  <div class="art" id="art"><div class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div>
+  <h1 id="title">Loading…</h1>
+  <p class="artist" id="artist"></p>
+  <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek">
+  <div class="row"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+  <div class="ctrl">
+    <button class="sk" id="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM20 6v12L9.5 12z"/></svg></button>
+    <button class="pp" id="play" aria-label="Play"><svg viewBox="0 0 24 24" id="ico"><path d="M8 5v14l11-7z"/></svg></button>
+    <button class="sk" id="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM4 6l10.5 6L4 18z"/></svg></button>
+  </div>
+  <div class="vol">
+    <button id="mute" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg></button>
+    <input type="range" id="vol" min="0" max="100" value="70" aria-label="Volume">
+  </div>
+  <div class="auto"><label><input type="checkbox" id="auto" checked> Autoplay next song</label><span style="color:var(--mute);font-size:.8rem">Space = play/pause</span></div>
+  <ul id="list" aria-label="Playlist"></ul>
+</main>
+
+<script>
+// ---- Playlist. Tracks are synthesized in the browser so the page works offline.
+// To use real files, replace `src` with your own MP3 URLs and drop the synth.
+const N=(s)=>s.split(' ').map(x=>x==='-'?0:+x);
+const tracks=[
+ {title:'Morning Chai',artist:'Pixel Orchestra',bpm:112,wave:'tri',c:['#0e7c86','#e8a33d'],
+  seq:N('60 64 67 64 60 64 67 72 62 65 69 65 62 65 69 74 64 67 71 67 64 67 71 76 60 - 67 - 64 - 60 -')},
+ {title:'Marina Lights',artist:'Neon Tides',bpm:128,wave:'sq',c:['#5b3fb0','#e0527a'],
+  seq:N('57 - 64 - 57 - 64 69 55 - 62 - 55 - 62 67 53 - 60 - 53 - 60 65 52 - 59 64 71 - 64 -')},
+ {title:'Slow Monsoon',artist:'Rainy Circuit',bpm:84,wave:'sin',c:['#2f6f4f','#b9d36a'],
+  seq:N('62 - 65 - 69 - 65 - 60 - 64 - 67 - 64 - 58 - 62 - 65 - 62 - 57 - 60 - 64 - - -')},
+ {title:'Night Bus 29C',artist:'Chrome Commuters',bpm:140,wave:'sq',c:['#1d2a5a','#ff7a3d'],
+  seq:N('48 60 48 60 51 63 51 63 53 65 53 65 55 67 58 70 48 60 48 60 51 63 51 63 46 58 46 58 43 55 43 55')}
+];
+const SR=11025;
+function synth(t){
+  const step=60/t.bpm/2, len=t.seq.length, loops=3, total=Math.floor(len*loops*step*SR);
+  const buf=new Float32Array(total);
+  for(let i=0;i<len*loops;i++){
+    const m=t.seq[i%len]; if(!m) continue;
+    const f=440*Math.pow(2,(m-69)/12), s0=Math.floor(i*step*SR), n=Math.floor(step*SR*.95);
+    for(let j=0;j<n&&s0+j<total;j++){
+      const ph=(f*j/SR)%1;
+      const w=t.wave==='sq'?(ph<.5?.5:-.5):t.wave==='tri'?4*Math.abs(ph-.5)-1:Math.sin(2*Math.PI*ph);
+      buf[s0+j]+=w*Math.min(1,j/60)*Math.exp(-2.5*j/n)*.55;
+    }
+  }
+  const b=new Uint8Array(44+total), v=new DataView(b.buffer);
+  const w4=(o,s)=>[...s].forEach((c,k)=>v.setUint8(o+k,c.charCodeAt(0)));
+  w4(0,'RIFF');v.setUint32(4,36+total,true);w4(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,SR,true);v.setUint32(28,SR,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w4(36,'data');v.setUint32(40,total,true);
+  for(let i=0;i<total;i++) b[44+i]=128+Math.max(-1,Math.min(1,buf[i]))*110;
+  let bin='';for(let i=0;i<b.length;i+=0x8000) bin+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));
+  return {src:'data:audio/wav;base64,'+btoa(bin), dur:total/SR};
+}
+tracks.forEach(t=>Object.assign(t,synth(t)));
+
+// ---- Player logic
+const $=id=>document.getElementById(id);
+const audio=new Audio(); audio.preload='metadata';
+let idx=0;
+const fmt=s=>isFinite(s)?Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'):'0:00';
+const setFill=(el)=>el.style.setProperty('--p',(el.value-el.min)/(el.max-el.min)*100+'%');
+
+$('list').innerHTML=tracks.map((t,i)=>`<li tabindex="0" data-i="${i}"><span class="t"><b>${t.title}</b><small>${t.artist}</small></span><span class="d">${fmt(t.dur)}</span></li>`).join('');
+
+function load(i,play){
+  idx=(i+tracks.length)%tracks.length; const t=tracks[idx];
+  audio.src=t.src; $('title').textContent=t.title; $('artist').textContent=t.artist;
+  $('dur').textContent=fmt(t.dur); $('cur').textContent='0:00'; $('seek').value=0; setFill($('seek'));
+  $('art').style.setProperty('--c1',t.c[0]); $('art').style.setProperty('--c2',t.c[1]);
+  document.querySelectorAll('li').forEach((li,k)=>li.classList.toggle('on',k===idx));
+  if(play) audio.play().catch(()=>{});
+}
+function toggle(){ audio.paused?audio.play().catch(()=>{}):audio.pause(); }
+
+audio.addEventListener('play',()=>sync(true));
+audio.addEventListener('pause',()=>sync(false));
+function sync(p){
+  $('player').classList.toggle('playing',p);
+  $('play').setAttribute('aria-label',p?'Pause':'Play');
+  $('ico').innerHTML=p?'<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>':'<path d="M8 5v14l11-7z"/>';
+}
+audio.addEventListener('loadedmetadata',()=>{$('dur').textContent=fmt(audio.duration)});
+audio.addEventListener('timeupdate',()=>{
+  if(!audio.duration) return;
+  $('cur').textContent=fmt(audio.currentTime);
+  $('seek').value=audio.currentTime/audio.duration*1000; setFill($('seek'));
+});
+audio.addEventListener('ended',()=>{ $('auto').checked ? load(idx+1,true) : (audio.currentTime=0, sync(false)); });
+
+$('seek').addEventListener('input',e=>{ setFill(e.target); if(audio.duration) audio.currentTime=e.target.value/1000*audio.duration; });
+$('vol').addEventListener('input',e=>{ audio.volume=e.target.value/100; audio.muted=false; setFill(e.target); });
+$('mute').onclick=()=>{ audio.muted=!audio.muted; $('mute').style.opacity=audio.muted?.4:1; };
+$('play').onclick=toggle;
+$('next').onclick=()=>load(idx+1,!audio.paused||true);
+$('prev').onclick=()=>{ audio.currentTime>3 ? audio.currentTime=0 : load(idx-1,true); };
+$('list').addEventListener('click',e=>{ const li=e.target.closest('li'); if(li) load(+li.dataset.i,true); });
+$('list').addEventListener('keydown',e=>{ if(e.key==='Enter'){const li=e.target.closest('li'); if(li) load(+li.dataset.i,true);} });
+document.addEventListener('keydown',e=>{ if(e.code==='Space'&&!/INPUT|BUTTON|LI/.test(e.target.tagName)){e.preventDefault();toggle();} });
+
+audio.volume=.7; setFill($('vol')); load(0,false);
+</script>
+</body>
+</html>
